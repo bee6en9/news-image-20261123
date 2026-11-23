@@ -2,8 +2,10 @@
 // Node 22, standard library only. No network, no external assets at run
 // time except the sibling fontdata.json (glyph outlines extracted from the
 // open Liberation fonts — data, not code). Draws a 1024x1024 newspaper
-// front page to /output/entry.png (or $MAKEFUN_OUTPUT_DIR/entry.png) and
-// also to ./entry.png for local verification. Deterministic: fixed seed,
+// front page to /output/entry.png (or $MAKEFUN_OUTPUT_DIR/entry.png) and,
+// best-effort only (never throws), also to ./entry.png for local
+// verification — the grader runs with /bot read-only, so that local copy
+// is skipped there. Deterministic: fixed seed,
 // no clocks, no randomness — two runs are byte-identical.
 //
 // Design (winner template, studied 22 Nov 2026): classic one-page
@@ -1001,7 +1003,11 @@ function main(): void {
   const outDir = process.env.MAKEFUN_OUTPUT_DIR || '/output';
   try { fs.mkdirSync(outDir, { recursive: true }); } catch { /* ignore */ }
   fs.writeFileSync(path.join(outDir, 'entry.png'), png);
-  fs.writeFileSync(path.join(__dir, 'entry.png'), png);
+  // Best-effort local copy for local verification only. The grader runs
+  // with /bot read-only, so this write MUST never throw: if it fails
+  // (EACCES/EROFS), swallow it — the authoritative output above already
+  // succeeded. An uncaught throw here used to exit the program with code 1.
+  try { fs.writeFileSync(path.join(__dir, 'entry.png'), png); } catch { /* ignore: read-only /bot in grader */ }
   // eslint-disable-next-line no-console
   console.log('wrote entry.png', png.length, 'bytes');
 }
